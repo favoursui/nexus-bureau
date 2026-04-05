@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+supabase
+stellar-sdk
+langchain
+langchain-openai
+langchain-core
+langgraph
+openai
+httpx
+python-dotenv
+requests

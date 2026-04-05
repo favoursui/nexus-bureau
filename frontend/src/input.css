@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== DARK MODE (default) ===== */
+.dark {
+  --color-bg-primary: #0a0a0f;
+  --color-bg-surface: #13131a;
+  --color-bg-surface-2: #1a1a24;
+  --color-bg-subtle: #2a2a38;
+  --color-text-primary: #f0f0f5;
+  --color-text-muted: #98abd1;
+  --color-border-subtle: #2a2a38;
+}
+
+/* ===== LIGHT MODE ===== */
+.light {
+  --color-bg-primary: #f5f0e8;
+  --color-bg-surface: #ede8dc;
+  --color-bg-surface-2: #e5dfd0;
+  --color-bg-subtle: #d5cfc0;
+  --color-text-primary: #571d06;
+  --color-text-muted: #502a03;
+  --color-border-subtle: #d5cfc0;
+}
+
+
+/* ===== MARKETPLACE ICON FIX ===== */
+.light .bg-purple-600\/20 {
+  background-color: rgba(107, 58, 42, 0.12) !important;
+  border: 1px solid rgba(107, 58, 42, 0.2) !important;
+}
+
+
+/* ===== MARKETPLACE ICON FIX ===== */
+.light .bg-purple-600\/20 {
+  background-color: rgba(138, 117, 110, 0.12) !important;
+  border: 1px solid rgba(112, 80, 69, 0.2) !important;
+}
+
+
+/* ===== BASE ===== */
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: 'Inter', sans-serif;
+}
+
+.font-mono, .font-jetbrains {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ===== UTILITY CLASSES ===== */
+.bg-primary    { background-color: var(--color-bg-primary); }
+.bg-surface    { background-color: var(--color-bg-surface); }
+.bg-surface-2  { background-color: var(--color-bg-surface-2); }
+.bg-subtle     { background-color: var(--color-bg-subtle); }
+.text-primary  { color: var(--color-text-primary); }
+.text-muted    { color: var(--color-text-muted); }
+.border-subtle { border-color: var(--color-border-subtle); }
+
+/* ===== NAV ===== */
+.nav-link {
+  color: var(--color-text-muted);
+}
+.nav-link:hover {
+  background-color: var(--color-bg-surface-2);
+  color: var(--color-text-primary);
+}
+.active-nav {
+  background-color: var(--color-bg-surface-2);
+  color: #a78bfa;
+}
+
+/* ===== LOG ENTRY ANIMATION ===== */
+.log-entry {
+  background-color: var(--color-bg-surface-2);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== PAYMENT LOG ENTRY ===== */
+.log-payment {
+  background-color: var(--color-bg-surface-2);
+  border-color: #7c3aed !important;
+  animation: slideIn 0.3s ease-out;
+}
+
+/* ===== TOGGLE BUTTON ===== */
+.toggle-btn {
+  background-color: var(--color-bg-subtle);
+}
+.toggle-btn.active {
+  background-color: #7c3aed;
+}
+.toggle-btn.active .toggle-dot {
+  transform: translateX(20px);
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-subtle);
+  border-radius: 4px;
+}
+
+/* ===== PAGE TRANSITION ===== */
+.page {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ===== API CARD ===== */
+.api-card {
+  background-color: var(--color-bg-surface-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.api-card:hover {
+  border-color: #7c3aed;
+  transform: translateY(-2px);
+}
+
