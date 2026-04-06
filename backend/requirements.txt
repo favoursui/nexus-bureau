@@ -5,6 +5,7 @@ supabase
 stellar-sdk
 langchain
 langchain-openai
+langchain-groq
 langchain-core
 langgraph
 openai

@@ -1,273 +1,241 @@
 const ui = {
 
-  // ===== NAVIGATION =====
+  //  NAVIGATION 
   setActivePage(page) {
-    // Hide all pages
     document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
-
-    // Show target page
     const target = document.getElementById(`page-${page}`);
     if (target) target.classList.remove("hidden");
 
-    // Update nav active state
-    document.querySelectorAll(".nav-link").forEach(link => {
-      link.classList.remove("active-nav");
-    });
-    const activeLink = document.getElementById(`nav-${page}`);
-    if (activeLink) activeLink.classList.add("active-nav");
+    document.querySelectorAll(".nav-link").forEach(l => l.classList.remove("active-nav"));
+    const active = document.getElementById(`nav-${page}`);
+    if (active) active.classList.add("active-nav");
 
-    // Update page title
     const titles = {
-      workspace: "WORKSPACE",
-      wallet: "WALLET / FUNDS",
+      workspace:   "WORKSPACE",
+      wallet:      "WALLET / FUNDS",
       marketplace: "API MARKETPLACE",
-      settings: "SETTINGS"
+      settings:    "SETTINGS"
     };
-    document.getElementById("page-title").textContent = titles[page] || page.toUpperCase();
+    const el = document.getElementById("page-title");
+    if (el) el.textContent = titles[page] || page.toUpperCase();
   },
 
-  // ===== SIDEBAR TOGGLE =====
+  //  SIDEBAR 
   toggleSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    const labels = document.querySelectorAll(".nav-label");
-    const logo = document.getElementById("logo-text");
-    const walletInfo = document.getElementById("wallet-info");
-    const gasInfo = document.getElementById("gas-info");
+    const sidebar  = document.getElementById("sidebar");
+    const labels   = document.querySelectorAll(".nav-label");
+    const logo     = document.getElementById("logo-text");
+    const wallet   = document.getElementById("wallet-info");
+    const gas      = document.getElementById("gas-info");
     const navLabel = document.getElementById("nav-label");
-    const themeLabel = document.getElementById("theme-label");
-    const isCollapsed = sidebar.classList.contains("collapsed");
 
-    if (isCollapsed) {
+    const collapsed = sidebar.classList.contains("collapsed");
+
+    if (collapsed) {
       sidebar.classList.remove("collapsed");
-      sidebar.style.width = "176px";
+      sidebar.style.width    = "176px";
+      sidebar.style.minWidth = "176px";
       labels.forEach(l => l.classList.remove("hidden"));
-      if (logo) logo.classList.remove("hidden");
-      if (walletInfo) walletInfo.classList.remove("hidden");
-      if (gasInfo) gasInfo.classList.remove("hidden");
-      if (navLabel) navLabel.classList.remove("hidden");
-      if (themeLabel) themeLabel.classList.remove("hidden");
+      [logo, wallet, gas, navLabel].forEach(el => el && el.classList.remove("hidden"));
     } else {
       sidebar.classList.add("collapsed");
-      sidebar.style.width = "56px";
+      sidebar.style.width    = "56px";
+      sidebar.style.minWidth = "56px";
       labels.forEach(l => l.classList.add("hidden"));
-      if (logo) logo.classList.add("hidden");
-      if (walletInfo) walletInfo.classList.add("hidden");
-      if (gasInfo) gasInfo.classList.add("hidden");
-      if (navLabel) navLabel.classList.add("hidden");
-      if (themeLabel) themeLabel.classList.add("hidden");
+      [logo, wallet, gas, navLabel].forEach(el => el && el.classList.add("hidden"));
     }
   },
 
-  // ===== THEME =====
+  //  THEME 
   setTheme(theme) {
     const html = document.documentElement;
     html.classList.remove("dark", "light");
     html.classList.add(theme);
     localStorage.setItem("theme", theme);
 
-    const darkIcon = document.getElementById("theme-icon-dark");
-    const lightIcon = document.getElementById("theme-icon-light");
+    const dark  = document.getElementById("theme-icon-dark");
+    const light = document.getElementById("theme-icon-light");
     const label = document.getElementById("theme-label");
 
     if (theme === "dark") {
-      darkIcon.classList.remove("hidden");
-      lightIcon.classList.add("hidden");
-      if (label) label.textContent = "Dark Mode";
+      dark  && dark.classList.remove("hidden");
+      light && light.classList.add("hidden");
+      label && (label.textContent = "Dark Mode");
     } else {
-      darkIcon.classList.add("hidden");
-      lightIcon.classList.remove("hidden");
-      if (label) label.textContent = "Light Mode";
+      dark  && dark.classList.add("hidden");
+      light && light.classList.remove("hidden");
+      label && (label.textContent = "Light Mode");
     }
   },
 
-  // ===== WALLET =====
+  //  WALLET 
   updateWalletDisplay(info) {
-    const short = info.public_key
-      ? info.public_key.slice(0, 4) + "..." + info.public_key.slice(-4)
-      : "N/A";
+    const key   = info.public_key || "";
+    const short = key ? key.slice(0, 4) + "..." + key.slice(-4) : "N/A";
+    const xlm   = parseFloat(info.balances?.native  || 0);
+    const usdc  = parseFloat(info.balances?.USDC || info.balances?.usdc || 0);
+    const bal   = usdc > 0 ? `${usdc.toFixed(2)} USDC` : `${xlm.toFixed(2)} XLM`;
+    const num   = usdc > 0 ? usdc.toFixed(2) : xlm.toFixed(2);
 
-    const xlm = info.balances?.native || "0";
-    const usdc = info.balances?.USDC || info.balances?.usdc || "0";
-    const display = parseFloat(usdc) > 0 ? `${parseFloat(usdc).toFixed(2)} USDC` : `${parseFloat(xlm).toFixed(2)} XLM`;
-
-    // Sidebar
-    const walletShort = document.getElementById("wallet-short");
-    const walletBal = document.getElementById("wallet-balance");
-    if (walletShort) walletShort.textContent = short;
-    if (walletBal) walletBal.textContent = display;
-
-    // Wallet page
-    const walletTotal = document.getElementById("wallet-total");
-    const walletAddrFull = document.getElementById("wallet-address-full");
-    if (walletTotal) walletTotal.textContent = parseFloat(usdc) > 0 ? parseFloat(usdc).toFixed(2) : parseFloat(xlm).toFixed(2);
-    if (walletAddrFull) walletAddrFull.textContent = `${short} · Stellar Network`;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set("wallet-short",        short);
+    set("wallet-balance",      bal);
+    set("wallet-total",        num);
+    set("wallet-address-full", `${short} · Stellar Network`);
   },
 
-  // ===== TRANSACTIONS =====
-  renderWalletTransactions(transactions) {
-    const container = document.getElementById("wallet-transactions");
-    if (!container) return;
-
-    if (!transactions.length) {
-      container.innerHTML = `<p class="text-xs text-muted text-center py-4">No transactions yet.</p>`;
+  //  TRANSACTIONS 
+  renderWalletTransactions(txs) {
+    const c = document.getElementById("wallet-transactions");
+    if (!c) return;
+    if (!txs.length) {
+      c.innerHTML = `<p class="text-xs text-muted text-center py-4">No transactions yet.</p>`;
       return;
     }
-
-    container.innerHTML = transactions.map(tx => `
-      <div class="flex items-center justify-between py-2 border-b border-subtle last:border-0">
-        <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
-            <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    c.innerHTML = txs.map(tx => `
+      <div class="flex items-center justify-between py-2.5 border-b border-subtle last:border-0">
+        <div class="flex items-center gap-3 overflow-hidden min-w-0">
+          <div class="w-8 h-8 min-w-8 rounded-full flex items-center justify-center" style="background:rgba(239,68,68,0.1)">
+            <svg class="w-4 h-4" style="color:#f87171" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17L17 7M17 7H7M17 7v10"/>
             </svg>
           </div>
-          <div>
-            <p class="text-sm text-primary">${tx.api_url.replace(/^https?:\/\//, '').slice(0, 30)}...</p>
+          <div class="overflow-hidden min-w-0">
+            <p class="text-sm text-primary truncate">${tx.api_url.replace(/^https?:\/\//, '').slice(0, 35)}</p>
             <p class="text-xs text-muted font-mono">${ui.timeAgo(tx.created_at)}</p>
           </div>
         </div>
-        <span class="text-sm font-mono text-red-400">-${tx.amount.toFixed(2)} ${tx.currency}</span>
+        <span class="text-sm font-mono ml-3 flex-shrink-0" style="color:#f87171">-${tx.amount.toFixed(2)} ${tx.currency}</span>
       </div>
     `).join("");
   },
 
-  // ===== EXECUTION LOG =====
-  addLogEntry(message, type = "info", extraData = null) {
+  //  EXECUTION LOG 
+  addLogEntry(message, type = "info", extra = null) {
     const log = document.getElementById("execution-log");
     if (!log) return;
 
-    const time = new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit", minute: "2-digit", second: "2-digit"
-    });
+    const time = new Date().toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
 
-    const icons = {
-      info: `<div class="w-6 h-6 rounded-full bg-purple-600/20 flex items-center justify-center">
-               <div class="w-2 h-2 rounded-full bg-purple-400"></div>
-             </div>`,
-      search: `<div class="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 text-xs">🔍</div>`,
-      payment: `<div class="w-6 h-6 rounded-full bg-green-600/20 flex items-center justify-center text-green-400 text-xs">💳</div>`,
-      success: `<div class="w-6 h-6 rounded-full bg-green-600/20 flex items-center justify-center text-green-400 text-xs">✅</div>`,
-      error: `<div class="w-6 h-6 rounded-full bg-red-600/20 flex items-center justify-center text-red-400 text-xs">❌</div>`
-    };
+    const dotColor = {
+      info:    "var(--color-accent)",
+      search:  "#60a5fa",
+      success: "#4ade80",
+      error:   "#f87171",
+      payment: "#4ade80"
+    }[type] || "var(--color-accent)";
 
-    let entryHTML = "";
+    let html = "";
 
-    if (type === "payment" && extraData) {
-      entryHTML = `
-        <div class="log-payment border rounded-xl px-4 py-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-green-400 text-xs">✅</span>
+    if (type === "payment" && extra) {
+      html = `
+        <div class="log-payment">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="color:#4ade80; font-size:12px;">✅</span>
               <span class="text-sm font-semibold text-primary">Payment Authorized</span>
             </div>
-            <a href="https://stellar.expert/explorer/testnet/tx/${extraData.hash}"
-               target="_blank"
-               class="text-xs text-purple-400 hover:underline">
+            <a href="https://stellar.expert/explorer/testnet/tx/${extra.hash}" target="_blank"
+               style="font-size:11px; color:var(--color-accent); text-decoration:none; white-space:nowrap;">
               View on Stellar Expert ↗
             </a>
           </div>
-          <p class="text-2xl font-mono font-bold text-primary mt-1">
-            ${extraData.amount} <span class="text-muted text-lg">${extraData.currency}</span>
+          <p style="font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--color-text-primary);">
+            ${extra.amount} <span style="font-size:14px; color:var(--color-text-muted);">${extra.currency}</span>
           </p>
-          <p class="text-xs text-muted font-mono mt-1">${time}</p>
+          <p class="text-xs text-muted font-mono" style="margin-top:4px;">${time}</p>
         </div>`;
     } else {
-      entryHTML = `
-        <div class="log-entry border border-subtle rounded-xl px-4 py-3">
-          <div class="flex items-center gap-2">
-            ${icons[type] || icons.info}
-            <p class="text-sm text-primary">${message}</p>
+      html = `
+        <div class="log-entry">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <div style="width:8px; height:8px; min-width:8px; border-radius:50%; background:${dotColor}; margin-top:5px;"></div>
+            <p class="text-sm text-primary" style="word-break:break-word; overflow-wrap:break-word; line-height:1.5;">${message}</p>
           </div>
-          <p class="text-xs text-muted font-mono mt-1">${time}</p>
+          <p class="text-xs text-muted font-mono" style="margin-top:6px; padding-left:18px;">${time}</p>
         </div>`;
     }
 
-    log.insertAdjacentHTML("beforeend", entryHTML);
+    log.insertAdjacentHTML("beforeend", html);
     log.scrollTop = log.scrollHeight;
   },
 
-  // ===== COMMAND MESSAGES =====
+  //  COMMAND MESSAGES 
   addCommandMessage(text, isUser = false) {
-    const container = document.getElementById("command-messages");
-    if (!container) return;
+    const c = document.getElementById("command-messages");
+    if (!c || !text || !text.trim()) return;
 
-    const time = new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit", minute: "2-digit", second: "2-digit"
-    });
+    const time    = new Date().toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
+    const cleaned = text.replace(/- https?:\/\/\S+/g, "").replace(/\n/g, "<br>").trim();
 
     const html = isUser
-      ? `<div class="flex justify-end">
-           <div class="bg-purple-600/20 border border-purple-600/30 rounded-xl px-3 py-2 max-w-xs">
-             <p class="text-sm text-primary">${text}</p>
-             <p class="text-xs text-muted font-mono mt-1">${time}</p>
-           </div>
+      ? `<div class="msg-bubble-user">
+           <p class="text-sm text-primary" style="word-break:break-word; overflow-wrap:break-word;">${cleaned}</p>
+           <p class="text-xs text-muted font-mono" style="margin-top:6px;">${time}</p>
          </div>`
-      : `<div class="bg-surface-2 rounded-xl p-3">
-           <div class="flex items-center gap-2 mb-1">
-             <div class="w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center text-xs text-white font-bold">N</div>
+      : `<div class="msg-bubble-agent">
+           <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+             <div class="agent-avatar">N</div>
+             <span class="text-xs text-muted" style="font-weight:500;">Nexus Bureau</span>
            </div>
-           <p class="text-sm text-primary">${text}</p>
-           <p class="text-xs text-muted font-mono mt-1">${time}</p>
+           <p class="text-sm text-primary" style="word-break:break-word; overflow-wrap:break-word; line-height:1.6;">${cleaned}</p>
+           <p class="text-xs text-muted font-mono" style="margin-top:6px;">${time}</p>
          </div>`;
 
-    container.insertAdjacentHTML("beforeend", html);
-    container.scrollTop = container.scrollHeight;
+    c.insertAdjacentHTML("beforeend", html);
+    c.scrollTop = c.scrollHeight;
   },
 
-  // ===== GAS TANK =====
+  //  GAS TANK 
   updateGasTank(used, limit) {
-    const percent = Math.min((used / limit) * 100, 100).toFixed(0);
+    const pct = Math.min((used / limit) * 100, 100).toFixed(0);
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     const bar = document.getElementById("gas-bar");
-    const pct = document.getElementById("gas-percent");
-    const usedEl = document.getElementById("gas-used");
-    const limitEl = document.getElementById("gas-limit");
-    if (bar) bar.style.width = `${percent}%`;
-    if (pct) pct.textContent = `${percent}%`;
-    if (usedEl) usedEl.textContent = `${used.toFixed(2)} USDC used`;
-    if (limitEl) limitEl.textContent = `${limit} limit`;
+    if (bar) bar.style.width = `${pct}%`;
+    set("gas-percent", `${pct}%`);
+    set("gas-used",    `${used.toFixed(2)} USDC used`);
+    set("gas-limit",   `${limit} limit`);
   },
 
-  // ===== MARKETPLACE =====
+  //  MARKETPLACE 
   renderMarketplace() {
     const apis = [
-      { name: "OpenWeather", desc: "Real-time weather data", price: "0.05", category: "Weather", icon: "🌤️" },
-      { name: "Geocoding Pro", desc: "Address to coordinates", price: "0.02", category: "Location", icon: "🌐" },
-      { name: "NewsWire", desc: "Breaking news aggregation", price: "0.08", category: "News", icon: "⚡" },
-      { name: "VectorDB", desc: "Semantic search endpoints", price: "0.10", category: "AI", icon: "🗄️" },
-      { name: "FinanceAPI", desc: "Real-time stock & crypto", price: "0.07", category: "Finance", icon: "📈" },
-      { name: "ScrapeAPI", desc: "Web scraping service", price: "0.03", category: "Data", icon: "🕷️" }
+      { name:"OpenWeather",  desc:"Real-time weather data",      price:"0.05", cat:"Weather",  icon:"🌤️" },
+      { name:"Geocoding Pro",desc:"Address to coordinates",      price:"0.02", cat:"Location", icon:"🌐" },
+      { name:"NewsWire",     desc:"Breaking news aggregation",   price:"0.08", cat:"News",     icon:"⚡" },
+      { name:"VectorDB",     desc:"Semantic search endpoints",   price:"0.10", cat:"AI",       icon:"🗄️" },
+      { name:"FinanceAPI",   desc:"Real-time stock & crypto",    price:"0.07", cat:"Finance",  icon:"📈" },
+      { name:"ScrapeAPI",    desc:"Web scraping service",        price:"0.03", cat:"Data",     icon:"🕷️" }
     ];
 
     const grid = document.getElementById("api-grid");
     if (!grid) return;
 
-    grid.innerHTML = apis.map(api => `
+    grid.innerHTML = apis.map(a => `
       <div class="api-card">
-        <div class="flex justify-between items-start mb-3">
-          <div class="w-10 h-10 rounded-xl border border-subtle flex items-center justify-center text-xl" style="background-color: var(--color-bg-subtle); filter: saturate(1.4) brightness(0.85);">${api.icon}</div>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-subtle text-muted">${api.category}</span>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+          <div style="width:40px; height:40px; border-radius:10px; background:var(--color-bg-subtle); border:1px solid var(--color-border); display:flex; align-items:center; justify-content:center; font-size:18px;">${a.icon}</div>
+          <span style="font-size:11px; padding:2px 8px; border-radius:20px; background:var(--color-bg-subtle); color:var(--color-text-muted);">${a.cat}</span>
         </div>
-        <p class="text-sm font-semibold text-primary">${api.name}</p>
-        <p class="text-xs text-muted mt-0.5 mb-3">${api.desc}</p>
-        <p class="text-xs font-mono text-purple-400">${api.price} USDC / call</p>
+        <p class="text-sm font-semibold text-primary" style="margin-bottom:4px;">${a.name}</p>
+        <p class="text-xs text-muted" style="margin-bottom:10px;">${a.desc}</p>
+        <p class="text-xs font-mono text-accent">${a.price} USDC / call</p>
       </div>
     `).join("");
   },
 
-  // ===== HELPERS =====
+  //  HELPERS 
   timeAgo(dateStr) {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "just now";
+    if (mins < 1)  return "just now";
     if (mins < 60) return `${mins} min ago`;
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs} hr ago`;
+    if (hrs < 24)  return `${hrs} hr ago`;
     return `${Math.floor(hrs / 24)} days ago`;
   },
 
   formatTime() {
-    return new Date().toLocaleTimeString("en-US", {
-      hour: "2-digit", minute: "2-digit", second: "2-digit"
-    });
+    return new Date().toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit", second:"2-digit" });
   }
 };

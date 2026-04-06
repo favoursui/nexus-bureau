@@ -1,7 +1,8 @@
 from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import create_react_agent
-from app.agent.tools import fetch_paywalled_content, search_web, summarize_content
+from app.agent.tools import fetch_paywalled_content, search_web, summarize_content, get_crypto_price
 from app.services.task_service import create_task, update_task_status
 from app.services.transaction_service import get_transactions_by_task
 from app.db.models import TaskCreate
@@ -11,19 +12,7 @@ from app.config import get_settings
 settings = get_settings()
 
 
-# LLM
-llm = ChatOpenAI(
-    model="gpt-4o",
-    temperature=0,
-    api_key=settings.OPENAI_API_KEY
-)
-
-
-# Tools
-tools = [search_web, fetch_paywalled_content, summarize_content]
-
-
-# System Prompt
+# --- System Prompt ---
 system_prompt = """
 You are an Economic Agent — an AI that can autonomously pay for data and services
 using the Stellar blockchain via the x402 payment protocol.
@@ -45,43 +34,98 @@ Rules:
 - If a payment fails, skip that source and try the next one
 """
 
+# --- Tools ---
 
-# Agent
-agent_executor = create_react_agent(
-    model=llm,
-    tools=tools,
-    prompt=system_prompt
-)
+tools = [search_web, fetch_paywalled_content, summarize_content, get_crypto_price]
+
+def get_llm(use_fallback: bool = False):
+    """
+    Returns OpenAI by default.
+    Falls back to Groq if use_fallback=True or no OpenAI key.
+    """
+    if use_fallback or not settings.OPENAI_API_KEY:
+        if not settings.GROQ_API_KEY:
+            raise Exception("No AI provider available. Set OPENAI_API_KEY or GROQ_API_KEY.")
+        print(f"⚡ Using Groq fallback ({settings.GROQ_MODEL})")
+        return ChatGroq(
+            model=settings.GROQ_MODEL,
+            temperature=0,
+            api_key=settings.GROQ_API_KEY
+        )
+
+    print(f"⚡ Using OpenAI ({settings.OPENAI_MODEL})")
+    return ChatOpenAI(
+        model=settings.OPENAI_MODEL,
+        temperature=0,
+        api_key=settings.OPENAI_API_KEY
+    )
+
+
+def build_agent(use_fallback: bool = False):
+    """Build agent executor with the appropriate LLM."""
+    llm = get_llm(use_fallback)
+    return create_react_agent(
+        model=llm,
+        tools=tools,
+        prompt=system_prompt
+    )
 
 
 async def run_agent(user_input: str) -> dict:
     """
     Main entry point to run the agent.
-    Creates a task, runs the agent, saves results, returns response.
+    Tries OpenAI first, falls back to Groq on quota/auth errors.
     """
     supabase = get_supabase()
 
-    # Create task in Supabase
+    # --- Create task in Supabase ---
     task = await create_task(TaskCreate(user_input=user_input))
     task_id = str(task.id)
 
     try:
-        # Update status to running
         await update_task_status(task_id, "running")
 
-        # Run the agent
-        result = await agent_executor.ainvoke({
-            "messages": [
-                {
-                    "role": "user",
-                    "content": f"{user_input}\n\n[task_id: {task_id}]"
-                }
-            ]
-        })
+        # --- Try OpenAI first ---
+        try:
+            agent_executor = build_agent(use_fallback=False)
+            result = await agent_executor.ainvoke({
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": f"{user_input}\n\n[task_id: {task_id}]"
+                    }
+                ]
+            })
+
+        except Exception as openai_err:
+            err_str = str(openai_err).lower()
+
+            # Check if it's a quota or auth error
+            if any(keyword in err_str for keyword in [
+                "insufficient_quota",
+                "quota",
+                "billing",
+                "rate_limit",
+                "authentication",
+                "invalid_api_key"
+            ]):
+                print(f"⚠️ OpenAI failed ({openai_err}), switching to Groq...")
+                agent_executor = build_agent(use_fallback=True)
+                result = await agent_executor.ainvoke({
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": f"{user_input}\n\n[task_id: {task_id}]"
+                        }
+                    ]
+                })
+            else:
+                # Not a quota error, re-raise
+                raise openai_err
 
         final_answer = result["messages"][-1].content
 
-        # Save result to Supabase
+        # --- Save result to Supabase ---
         transactions = await get_transactions_by_task(task_id)
         sources = [tx.api_url for tx in transactions]
 
@@ -91,7 +135,6 @@ async def run_agent(user_input: str) -> dict:
             "sources": sources
         }).execute()
 
-        # Update status to completed
         await update_task_status(task_id, "completed")
 
         return {

@@ -119,3 +119,28 @@ async def summarize_content(content: str, query: str) -> str:
     Content:
     {trimmed}
     """
+
+@tool
+async def get_crypto_price(symbol: str) -> dict:
+    """
+    Get real-time cryptocurrency price.
+    Use this for any crypto price questions.
+    Symbol examples: BTC, ETH, SOL, XLM
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                f"https://api.coingecko.com/api/v3/simple/price",
+                params={
+                    "ids": symbol.lower().replace("btc", "bitcoin").replace("eth", "ethereum").replace("sol", "solana").replace("xlm", "stellar"),
+                    "vs_currencies": "usd"
+                }
+            )
+            data = response.json()
+            return {
+                "success": True,
+                "symbol": symbol.upper(),
+                "price_usd": list(data.values())[0]["usd"] if data else None
+            }
+    except Exception as e:
+        return {"success": False, "error": str(e)}

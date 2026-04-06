@@ -1,168 +1,156 @@
-// ===== STATE =====
+//  STATE 
 const state = {
   currentPage: "workspace",
-  totalSpent: 0,
-  dailyLimit: 10,
-  pollingInterval: null
+  totalSpent:  0,
+  dailyLimit:  10,
+  polling:     null
 };
 
-// ===== NAVIGATION =====
+//  NAVIGATION 
 function navigateTo(page) {
   state.currentPage = page;
   ui.setActivePage(page);
-
-  if (page === "wallet") loadWalletPage();
+  if (page === "wallet")      loadWalletPage();
   if (page === "marketplace") ui.renderMarketplace();
 }
 
-// ===== THEME =====
+//  THEME 
 function toggleTheme() {
-  const current = document.documentElement.classList.contains("dark") ? "dark" : "light";
-  ui.setTheme(current === "dark" ? "light" : "dark");
+  const isDark = document.documentElement.classList.contains("dark");
+  ui.setTheme(isDark ? "light" : "dark");
 }
 
-// ===== SIDEBAR =====
+//  SIDEBAR 
 function toggleSidebar() {
   ui.toggleSidebar();
 }
 
-// ===== SETTINGS TOGGLE =====
+//  SETTINGS 
 function toggleSetting(btn) {
   btn.classList.toggle("active");
 }
 
-// ===== AGENT INPUT =====
+//  INPUT 
 function handleInputKeydown(e) {
   if (e.key === "Enter") submitCommand();
 }
 
+//  SUBMIT COMMAND 
 async function submitCommand() {
-  const input = document.getElementById("agent-input");
+  const input   = document.getElementById("agent-input");
   const command = input.value.trim();
   if (!command) return;
 
-  input.value = "";
+  input.value    = "";
   input.disabled = true;
 
-  // Show user message
   ui.addCommandMessage(command, true);
-
-  // Log start
   ui.addLogEntry("Agent initialized. Processing command...", "info");
-  ui.addLogEntry(`Searching for relevant sources...`, "search");
+  ui.addLogEntry("Searching for relevant sources...", "search");
 
   try {
-    // Show thinking message
     ui.addCommandMessage("On it! Searching and fetching data...", false);
 
-    // Call backend
     const result = await api.createTask(command);
 
-    // Log transactions if any
     if (result.transactions && result.transactions.length > 0) {
       result.transactions.forEach(tx => {
         ui.addLogEntry(`Found source: ${tx.api_url}`, "search");
-        ui.addLogEntry(`API requires x402 payment. Preparing transaction...`, "info");
+        ui.addLogEntry("API requires x402 payment. Preparing transaction...", "info");
         ui.addLogEntry(null, "payment", {
-          amount: tx.amount.toFixed(2),
+          amount:   tx.amount.toFixed(2),
           currency: tx.currency,
-          hash: tx.stellar_hash
+          hash:     tx.stellar_hash
         });
-        ui.addLogEntry(`Payment confirmed. Fetching data...`, "success");
-
-        // Update gas tank
+        ui.addLogEntry("Payment confirmed. Fetching data...", "success");
         state.totalSpent += tx.amount;
         ui.updateGasTank(state.totalSpent, state.dailyLimit);
       });
+    } else {
+      ui.addLogEntry("Task completed. No payments required.", "success");
     }
 
-    // Log completion
     ui.addLogEntry("Task completed successfully.", "success");
-
-    // Show answer in command panel
     ui.addCommandMessage(result.answer, false);
-
-    // Refresh wallet
     loadWalletInfo();
 
   } catch (err) {
-    ui.addLogEntry(`Error: ${err.message}`, "error");
-    ui.addCommandMessage(`Sorry, something went wrong: ${err.message}`, false);
+    let msg = "Something went wrong. Please try again.";
+    try {
+      const parsed = JSON.parse(err.message);
+      msg = parsed.detail || msg;
+      if (msg.startsWith("Agent run failed:")) msg = msg.replace("Agent run failed: ", "");
+      const m = msg.match(/'message': '([^']+)'/);
+      if (m) msg = m[1];
+    } catch { msg = err.message; }
+
+    ui.addLogEntry(`Error: ${msg}`, "error");
+    ui.addCommandMessage(`❌ ${msg}`, false);
+
   } finally {
     input.disabled = false;
     input.focus();
   }
 }
 
-// ===== WALLET =====
+//  WALLET 
 async function loadWalletInfo() {
   try {
     const info = await api.getWalletInfo();
     ui.updateWalletDisplay(info);
-  } catch (err) {
-    console.error("Failed to load wallet info:", err);
+  } catch (e) {
+    console.error("Wallet info error:", e);
   }
 }
 
 async function loadWalletPage() {
   try {
-    const [info, transactions] = await Promise.all([
+    const [info, txs] = await Promise.all([
       api.getWalletInfo(),
       api.getAllTransactions()
     ]);
 
     ui.updateWalletDisplay(info);
-    ui.renderWalletTransactions(transactions);
+    ui.renderWalletTransactions(txs);
 
-    // Update spending bar
-    const totalSpent = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-    state.totalSpent = totalSpent;
-    ui.updateGasTank(totalSpent, state.dailyLimit);
+    const spent = txs.reduce((s, t) => s + t.amount, 0);
+    state.totalSpent = spent;
+    ui.updateGasTank(spent, state.dailyLimit);
 
-    const spendBar = document.getElementById("spend-bar");
-    const spendUsed = document.getElementById("spend-used");
-    const spendRemaining = document.getElementById("spend-remaining");
-    const percent = Math.min((totalSpent / state.dailyLimit) * 100, 100);
+    const pct = Math.min((spent / state.dailyLimit) * 100, 100);
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const bar = document.getElementById("spend-bar");
 
-    if (spendBar) spendBar.style.width = `${percent}%`;
-    if (spendUsed) spendUsed.textContent = `${totalSpent.toFixed(2)} / ${state.dailyLimit.toFixed(2)} USDC used today`;
-    if (spendRemaining) spendRemaining.textContent = `${(state.dailyLimit - totalSpent).toFixed(2)} USDC remaining`;
+    if (bar) bar.style.width = `${pct}%`;
+    set("spend-used",      `${spent.toFixed(2)} / ${state.dailyLimit.toFixed(2)} USDC used today`);
+    set("spend-remaining", `${(state.dailyLimit - spent).toFixed(2)} USDC remaining`);
 
-  } catch (err) {
-    console.error("Failed to load wallet page:", err);
+  } catch (e) {
+    console.error("Wallet page error:", e);
   }
 }
 
-// ===== POLLING =====
-// Poll transactions every 5 seconds when on wallet page
+//  POLLING 
 function startPolling() {
-  state.pollingInterval = setInterval(() => {
+  state.polling = setInterval(() => {
     if (state.currentPage === "wallet") loadWalletPage();
   }, 5000);
 }
 
-// ===== INIT =====
+//  INIT 
 async function init() {
-  // Load saved theme
-  const savedTheme = localStorage.getItem("theme") || "dark";
-  ui.setTheme(savedTheme);
+  const theme = localStorage.getItem("theme") || "dark";
+  ui.setTheme(theme);
 
-  // Set timestamps
   const now = ui.formatTime();
-  const welcomeTime = document.getElementById("welcome-time");
-  const initTime = document.getElementById("init-time");
-  if (welcomeTime) welcomeTime.textContent = now;
-  if (initTime) initTime.textContent = now;
+  const wt  = document.getElementById("welcome-time");
+  const it  = document.getElementById("init-time");
+  if (wt) wt.textContent = now;
+  if (it) it.textContent = now;
 
-  // Load wallet info
   await loadWalletInfo();
-
-  // Render marketplace
   ui.renderMarketplace();
-
-  // Start polling
   startPolling();
 }
 
-// ===== BOOTSTRAP =====
 document.addEventListener("DOMContentLoaded", init);
