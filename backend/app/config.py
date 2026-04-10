@@ -19,6 +19,13 @@ class Settings:
     # Groq
     GROQ_API_KEY: str = os.environ.get("GROQ_API_KEY", "")
     GROQ_MODEL: str = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+    GROQ_MODEL_2: str = os.environ.get("GROQ_MODEL_2", "mixtral-8x7b-32768")
+
+    TAVILY_API_KEY: str = os.environ.get("TAVILY_API_KEY", "")
+
+    # Together
+    TOGETHER_API_KEY: str = os.environ.get("TOGETHER_API_KEY", "")
+    TOGETHER_MODEL: str = os.environ.get("TOGETHER_MODEL", "meta-llama/Llama-3-70b-chat-hf")
 
     # App
     APP_ENV: str = os.environ.get("APP_ENV", "development")

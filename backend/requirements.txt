@@ -12,3 +12,6 @@ openai
 httpx
 python-dotenv
 requests
+langchain-together
+tavily-python
+langchain-tavily
