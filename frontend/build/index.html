@@ -99,12 +99,29 @@
 
       <!-- Connected Wallet -->
       <div class="border-t border-subtle pt-3" id="wallet-info">
-        <p class="nav-label text-xs text-muted mb-1">Connected Wallet</p>
-        <div class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
-          <span class="nav-label text-xs font-mono text-primary truncate" id="wallet-short">Loading...</span>
+
+        <!-- Not connected -->
+        <div id="wallet-disconnected">
+          <button onclick="connectWallet()"
+            class="nav-label w-full text-xs font-medium px-2 py-1.5 rounded-lg border border-subtle hover:border-accent text-muted hover:text-accent transition-all text-left">
+            + Connect Wallet
+          </button>
         </div>
-        <p class="nav-label text-xs font-mono text-accent mt-0.5" id="wallet-balance">-- USDC</p>
+
+        <!-- Connected -->
+        <div id="wallet-connected" class="hidden">
+          <div class="flex items-center justify-between mb-0.5">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span>
+              <span class="nav-label text-xs font-mono text-primary truncate" id="wallet-short">--</span>
+            </div>
+            <button onclick="disconnectWallet()"
+              class="nav-label text-xs text-muted hover:text-red-400 transition-colors">
+              ✕
+            </button>
+          </div>
+          <p class="nav-label text-xs font-mono text-accent mt-0.5" id="wallet-balance">-- XLM</p>
+        </div>
       </div>
 
     </div>
@@ -137,7 +154,7 @@
             <span class="text-sm font-semibold text-primary">Agent Command</span>
           </div>
 
-          <!-- Messages - scrollable -->
+          <!-- Messages scrollable -->
           <div class="flex-1 overflow-y-auto min-h-0 p-4 flex flex-col gap-3" id="command-messages">
             <div class="msg-bubble-agent">
               <div class="flex items-center gap-2 mb-1.5">
@@ -169,7 +186,7 @@
           </div>
         </div>
 
-        <!-- Live Execution Log - scrollable -->
+        <!-- Live Execution Log scrollable -->
         <div class="flex-1 flex flex-col h-full min-w-0">
           <div class="px-5 py-3 border-b border-subtle flex items-center gap-2 flex-shrink-0">
             <span class="text-accent">⚡</span>
@@ -191,15 +208,43 @@
           <span class="text-accent">💳</span> Wallet / Funds
         </h2>
 
-        <div class="bg-surface-2 border border-subtle rounded-2xl p-5 mb-4 max-w-lg">
-          <p class="text-xs text-muted uppercase tracking-widest mb-1">Total Balance</p>
-          <div class="flex items-baseline gap-2">
-            <span class="text-4xl font-bold font-mono text-primary" id="wallet-total">--</span>
-            <span class="text-lg text-muted">USDC</span>
+        <!-- Wallet not connected -->
+        <div id="wallet-page-disconnected" class="bg-surface-2 border border-subtle rounded-2xl p-8 mb-4 max-w-lg flex flex-col items-center justify-center gap-4">
+          <div class="w-12 h-12 rounded-2xl bg-subtle flex items-center justify-center text-2xl">💳</div>
+          <div class="text-center">
+            <p class="text-sm font-semibold text-primary mb-1">No Wallet Connected</p>
+            <p class="text-xs text-muted">Connect your Freighter wallet to view your balance</p>
           </div>
-          <p class="text-xs font-mono text-muted mt-2" id="wallet-address-full">-- · Stellar Network</p>
+          <button onclick="connectWallet()"
+            class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-colors"
+            style="background-color:var(--color-accent);">
+            Connect Freighter Wallet
+          </button>
         </div>
 
+        <!-- Wallet connected -->
+        <div id="wallet-page-connected" class="hidden">
+          <div class="bg-surface-2 border border-subtle rounded-2xl p-5 mb-4 max-w-lg">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-xs text-muted uppercase tracking-widest">Total Balance</p>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-green-400"></span>
+                <span class="text-xs text-muted font-mono">Stellar Testnet</span>
+              </div>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span class="text-4xl font-bold font-mono text-primary" id="wallet-total">--</span>
+              <span class="text-lg text-muted">XLM</span>
+            </div>
+            <p class="text-xs font-mono text-muted mt-2" id="wallet-address-full">-- · Stellar Network</p>
+            <button onclick="disconnectWallet()"
+              class="mt-3 text-xs text-muted hover:text-red-400 transition-colors">
+              Disconnect wallet
+            </button>
+          </div>
+        </div>
+
+        <!-- Daily Spending Limit -->
         <div class="bg-surface-2 border border-subtle rounded-2xl p-5 mb-4 max-w-lg">
           <p class="text-sm font-semibold text-primary mb-3">Daily Spending Limit</p>
           <div class="w-full h-2 bg-subtle rounded-full overflow-hidden mb-2">
@@ -211,6 +256,7 @@
           </div>
         </div>
 
+        <!-- Recent Transactions -->
         <div class="bg-surface-2 border border-subtle rounded-2xl p-5 max-w-lg">
           <p class="text-sm font-semibold text-primary mb-4">Recent Transactions</p>
           <div class="flex flex-col gap-3" id="wallet-transactions">
@@ -292,7 +338,43 @@
   </main>
 </div>
 
+<!-- PIN Modal -->
+<div id="pin-modal" class="hidden fixed inset-0 flex items-center justify-center z-50"
+     style="background:rgba(0,0,0,0.6);">
+  <div class="bg-surface border border-subtle rounded-2xl p-6 w-80 flex flex-col gap-4">
+    <h3 class="text-sm font-semibold text-primary">🔐 PIN Required</h3>
+    <p class="text-xs text-muted">This transaction exceeds 1.00 USDC. Enter your PIN to authorize.</p>
+    <input id="pin-input" type="password" maxlength="6" placeholder="Enter PIN"
+           class="bg-surface-2 border border-subtle rounded-xl px-3 py-2.5 text-sm text-primary outline-none focus:border-accent text-center font-mono tracking-widest"
+           onkeydown="handlePinKeydown(event)" />
+    <div class="flex gap-2">
+      <button onclick="cancelPin()"
+        class="flex-1 py-2 rounded-xl text-sm text-muted border border-subtle hover:border-accent transition-colors">
+        Cancel
+      </button>
+      <button onclick="confirmPin()"
+        class="flex-1 py-2 rounded-xl text-sm text-white transition-colors"
+        style="background:var(--color-accent);">
+        Confirm
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Notification Toast -->
+<div id="toast" class="hidden fixed bottom-6 right-6 z-50 max-w-sm">
+  <div class="bg-surface border border-subtle rounded-xl px-4 py-3 flex items-start gap-3 shadow-lg"
+       style="animation: fadeUp 0.3s ease-out;">
+    <span id="toast-icon" class="text-lg flex-shrink-0">✅</span>
+    <div class="min-w-0">
+      <p id="toast-title" class="text-sm font-semibold text-primary"></p>
+      <p id="toast-message" class="text-xs text-muted mt-0.5 break-words"></p>
+    </div>
+  </div>
+</div>
+
 <script src="js/api.js"></script>
+<script src="js/wallet.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/app.js"></script>
 </body>

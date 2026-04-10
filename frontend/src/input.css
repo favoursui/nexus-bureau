@@ -209,3 +209,14 @@ body {
   overflow-y: auto;
   min-height: 0;
 }
+
+/* ===== PIN MODAL ===== */
+#pin-input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+/* ===== TOAST ===== */
+#toast {
+  transition: opacity 0.3s ease;
+}
